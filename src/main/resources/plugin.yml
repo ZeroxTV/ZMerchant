@@ -1,0 +1,8 @@
+name: ZMerchant
+version: ${project.version}
+main: de.zeroxtv.zmerchant.ZMerchant
+prefix: ZMerchant
+depend: [ZConomy]
+authors: [ZeroxTV]
+description: Adds a merchant villager
+website: http://zeroxtv.deq
