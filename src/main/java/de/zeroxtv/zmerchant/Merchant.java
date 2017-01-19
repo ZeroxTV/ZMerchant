@@ -10,6 +10,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +21,9 @@ import java.util.UUID;
  * Created by ZeroxTV
  */
 public class Merchant {
-    public static ArrayList<Merchant> merchants = new ArrayList<>();
+    private static ArrayList<Merchant> merchants = new ArrayList<>();
 
-    public static void loadMerchants() {
+    static void loadMerchants() {
         File pathFile = new File("ZConomy/merchants/");
         if (!pathFile.exists()) {
             pathFile.mkdirs() ;
@@ -43,7 +44,7 @@ public class Merchant {
         }
     }
 
-    public static Merchant isMerchant(Entity entity) {
+    static Merchant isMerchant(Entity entity) {
         for (Merchant merchant : merchants) {
             if (merchant.getVillager().getUniqueId().equals(entity.getUniqueId())) {
                 return merchant;
@@ -66,7 +67,8 @@ public class Merchant {
     private UUID uuid;
     private File configFile;
     private YamlConfiguration config;
-    private ArrayList<MerchantItem> offers = new ArrayList<MerchantItem>();
+    private ArrayList<MerchantItem> offers = new ArrayList<>();
+    private ArrayList<MerchantItem> requests = new ArrayList<>();
     private MerchantGUI menu;
 
     public Merchant(Location location, String name) {
@@ -74,6 +76,7 @@ public class Merchant {
         villager.setProfession(Villager.Profession.NITWIT);
         villager.setAI(false);
         villager.setCustomName(name);
+        villager.setInvulnerable(true);
         villager.setCustomNameVisible(true);
         uuid = villager.getUniqueId();
         configFile = new File("ZConomy/merchants/" + uuid + ".yml");
@@ -88,21 +91,33 @@ public class Merchant {
         save();
 
         resetOffers();
+        resetRequests();
         menu = new MerchantGUI(this);
         merchants.add(this);
     }
 
-    public Merchant(UUID uuid) {
+    private Merchant(UUID uuid) {
+        configFile = new File("ZConomy/merchants/" + uuid + ".yml");
+        config = new YamlConfiguration();
         villager = (Villager) getEntityByUniqueId(uuid);
+        if (villager == null) {
+            villager = (Villager) Bukkit.getWorld(config.getString("world")).spawnEntity(new Location(Bukkit.getWorld(config.getString("world")),config.getDouble("X"), config.getDouble("Y"), config.getDouble("Z")), EntityType.VILLAGER);
+            villager.setProfession(Villager.Profession.NITWIT);
+            villager.setAI(false);
+            villager.setCustomName(config.getString("name"));
+            villager.setInvulnerable(true);
+            villager.setCustomNameVisible(true);
+        }
         this.uuid = uuid;
         configFile = new File("ZConomy/merchants/" + uuid + ".yml");
         config = new YamlConfiguration();
         resetOffers();
+        resetRequests();
         menu = new MerchantGUI(this);
         merchants.add(this);
     }
 
-    public void save() {
+    private void save() {
         try {
             config.save(configFile);
         } catch (IOException e) {
@@ -110,16 +125,17 @@ public class Merchant {
         }
     }
 
-    public Villager getVillager() {
+    private Villager getVillager() {
         return this.villager;
     }
 
-    public void resetOffers() {
+    private void resetOffers() {
         for (int i = 0; i < 9; i++) {
             boolean found = false;
             while (!found) {
-                MerchantItem item = MerchantItem.getRandomTrade();
-                if (!offerExistent(item.getItem().getType())) {
+                MerchantItem item = MerchantItem.getRandomOffer();
+                if (item == null) System.out.println("item null");
+                if (!tradeExistent(item.getItem(), offers)) {
                     found = true;
                     offers.add(item);
                 }
@@ -127,28 +143,51 @@ public class Merchant {
         }
     }
 
-    private boolean offerExistent(Material material) {
-        for (MerchantItem item : offers) {
-            if (item.getItem().getType().equals(material)) {
+    private void resetRequests() {
+        for (int i = 0; i < 3; i++) {
+            boolean found = false;
+            while (!found) {
+                MerchantItem item = MerchantItem.getRandomRequest();
+                if (!tradeExistent(item.getItem(), requests)) {
+                    found = true;
+                    requests.add(item);
+                }
+            }
+        }
+    }
+
+    private boolean tradeExistent(ItemStack itemStack, ArrayList<MerchantItem> array) {
+        if (array == null) System.out.println("array null");
+        for (MerchantItem item : array) {
+            if (item == null) System.out.println("item null");
+            if (item.getItem() == null) System.out.println("item item null");
+            if (itemStack == null) System.out.println("itemstack null");
+            if (item.getItem().getType().equals(itemStack.getType()) &&
+                    item.getItem().getDurability() == itemStack.getDurability() &&
+                    item.getItem().getData().equals(itemStack.getData())) {
                 return true;
             }
         }
         return false;
     }
 
-    public ArrayList<MerchantItem> getOffers() {
+    ArrayList<MerchantItem> getOffers() {
         return offers;
     }
 
-    public void openMenu(Player player) {
-        //menu.open(player);
+    ArrayList<MerchantItem> getRequests() {
+        return requests;
+    }
+
+    void openMenu(Player player) {
+        menu.open(player);
     }
 
     private void kill() {
         this.villager.setHealth(0);
     }
 
-    public Entity getEntityByUniqueId(UUID uniqueId) {
+    private Entity getEntityByUniqueId(UUID uniqueId) {
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
                 if (entity.getUniqueId().equals(uniqueId))

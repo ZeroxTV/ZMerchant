@@ -79,7 +79,14 @@
         <dependency>
             <groupId>com.github.ZeroxTV</groupId>
             <artifactId>ZConomy</artifactId>
-            <version>-SNAPSHOT</version>
+            <version>7740a19570</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ZeroxTV</groupId>
+            <artifactId>ZCore</artifactId>
+            <version>abe42cd574</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
